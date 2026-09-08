@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+option go_package = "./;protos";
+
+message HelloMsg {
+  string msg = 1;
+}
+
+service HelloService {
+  rpc Receive(HelloMsg) returns (HelloMsg);
+}
