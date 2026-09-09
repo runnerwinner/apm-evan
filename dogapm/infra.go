@@ -52,6 +52,7 @@ func InfraRdbOption(connectUrl string) InfraOption {
 			Addr: connectUrl,
 			DB:   0,
 		})
+		rdb.AddHook(&redisHook{})
 		if err := rdb.Ping(context.TODO()).Err(); err != nil {
 			panic(err)
 		}
