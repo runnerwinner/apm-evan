@@ -4,6 +4,10 @@ import (
 	"context"
 	"database/sql/driver"
 	"errors"
+	"time"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Hooks struct {
@@ -166,4 +170,66 @@ func (drv *Driver) Open(name string) (driver.Conn, error) {
 		Conn:  conn,
 		hooks: drv.hooks,
 	}, nil
+}
+
+type DriverTx struct {
+	driver.Tx
+	start time.Time
+	ctx   context.Context
+}
+
+func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	if beginTx, ok := c.Conn.(driver.ConnBeginTx); ok {
+		tx, err := beginTx.BeginTx(ctx, opts)
+		if err != nil {
+			return nil, err
+		}
+		return &DriverTx{
+			Tx:    tx,
+			start: time.Now(),
+			ctx:   ctx,
+		}, nil
+	} else {
+		panic("not implement ConnBeginTx")
+	}
+}
+
+func (d *DriverTx) Commit() error {
+	if d.Tx == nil {
+		return errors.New("tx is nil")
+	}
+	err := d.Tx.Commit()
+	if err != nil {
+		return err
+	}
+	duration := time.Since(d.start)
+	if duration.Seconds() >= 3 {
+		// log slow transaction
+		if span := trace.SpanFromContext(d.ctx); span != nil {
+			span.SetAttributes(
+				attribute.Bool("longTx", true),
+			)
+		}
+	}
+	return err
+}
+
+func (d *DriverTx) Rollback() error {
+	if d.Tx == nil {
+		return errors.New("tx is nil")
+	}
+	err := d.Tx.Rollback()
+	if err != nil {
+		return err
+	}
+	duration := time.Since(d.start)
+	if duration.Seconds() >= 3 {
+		// log slow transaction
+		if span := trace.SpanFromContext(d.ctx); span != nil {
+			span.SetAttributes(
+				attribute.Bool("longTx", true),
+			)
+		}
+	}
+	return err
 }

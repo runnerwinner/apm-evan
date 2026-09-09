@@ -29,6 +29,11 @@ processors:
           type: boolean_attribute,
           boolean_attribute: { key: slowsql, value: true },
         },
+        {
+          name: longTx-always-sample,
+          type: boolean_attribute,
+          boolean_attribute: { key: longTx, value: true },
+        },
       ]
 
 exporters:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -65,13 +66,11 @@ func TestMysqlWrapper(t *testing.T) {
 	}
 }
 
-
-
 func TestTraceDriver(t *testing.T) {
 	// Register the wrapped driver
 	Infra.Init(
 		InfraEnableApm("127.0.0.1:54317"),
-		InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),
+		InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),		
 	)
 	var slept int
 	if err := Infra.Db.QueryRowContext(context.Background(), "SELECT SLEEP(5)").Scan(&slept); err != nil {
@@ -80,5 +79,22 @@ func TestTraceDriver(t *testing.T) {
 	if slept != 0 {
 		t.Fatalf("Unexpected sleep result: %d", slept)
 	}
+	EndPoint.Close()
+}
+
+func TestLongTx(t *testing.T) {
+	Infra.Init(
+		InfraEnableApm("127.0.0.1:54317"),
+		InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),
+	)
+
+	ctx,span := Tracer.Start(context.Background(), "longTx")
+	tx, err := Infra.Db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelDefault})
+	if err != nil {
+		t.Fatalf("Failed to begin transaction: %v", err)
+	}
+	time.Sleep(5*time.Second)
+	tx.Rollback()
+	span.End()
 	EndPoint.Close()
 }
