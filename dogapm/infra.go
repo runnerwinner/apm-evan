@@ -40,6 +40,10 @@ func InfraDbOption(connectUrl string) InfraOption {
 			panic(err)
 		}
 		i.Db = db
+		err = db.Ping()
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
