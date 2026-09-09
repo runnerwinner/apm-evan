@@ -7,9 +7,9 @@ import (
 )
 
 type Hooks struct {
-	Before func(ctx context.Context, query string, args ...any) (context.Context, error)
-	After  func(ctx context.Context, query string, args ...any) (context.Context, error)
-	OnError  func(ctx context.Context, err error, query string, args ...any) (error)
+	Before  func(ctx context.Context, query string, args ...any) (context.Context, error)
+	After   func(ctx context.Context, query string, args ...any) (context.Context, error)
+	OnError func(ctx context.Context, err error, query string, args ...any) error
 }
 
 type Driver struct {
@@ -55,10 +55,11 @@ func namedToTnterface(args []driver.NamedValue) []any {
 
 func (s *Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	if stmt, ok := s.Stmt.(driver.StmtQueryContext); ok {
-		_, err := s.hooks.Before(ctx, s.query, namedToTnterface(args)...)
+		nextCtx, err := s.hooks.Before(ctx, s.query, namedToTnterface(args)...)
 		if err != nil {
 			return nil, err
 		}
+		ctx = nextCtx
 
 		rows, err := stmt.QueryContext(ctx, args)
 		if err != nil {
@@ -76,10 +77,11 @@ func (s *Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 
 func (s *Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	if stmt, ok := s.Stmt.(driver.StmtExecContext); ok {
-		_, err := s.hooks.Before(ctx, s.query, namedToTnterface(args)...)
+		nextCtx, err := s.hooks.Before(ctx, s.query, namedToTnterface(args)...)
 		if err != nil {
 			return nil, err
 		}
+		ctx = nextCtx
 
 		res, err := stmt.ExecContext(ctx, args)
 		if err != nil {
@@ -95,7 +97,7 @@ func (s *Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (drive
 	}
 }
 
-func(c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+func (c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
 	if prepare, ok := c.Conn.(driver.ConnPrepareContext); ok {
 		stmt, err := prepare.PrepareContext(ctx, query)
 		if err != nil {
@@ -111,13 +113,13 @@ func(c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, er
 	}
 }
 
-
 func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
 	if exec, ok := c.Conn.(driver.ExecerContext); ok {
-		_, err := c.hooks.Before(ctx, query, namedToTnterface(args)...)
+		nextCtx, err := c.hooks.Before(ctx, query, namedToTnterface(args)...)
 		if err != nil {
 			return nil, err
 		}
+		ctx = nextCtx
 
 		res, err := exec.ExecContext(ctx, query, args)
 		if err != nil {
@@ -135,10 +137,11 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 
 func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
 	if queryer, ok := c.Conn.(driver.QueryerContext); ok {
-		_, err := c.hooks.Before(ctx, query, namedToTnterface(args)...)
+		nextCtx, err := c.hooks.Before(ctx, query, namedToTnterface(args)...)
 		if err != nil {
 			return nil, err
 		}
+		ctx = nextCtx
 
 		rows, err := queryer.QueryContext(ctx, query, args)
 		if err != nil {
@@ -153,9 +156,6 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		panic("not implement QueryerContext")
 	}
 }
-
-
-
 
 func (drv *Driver) Open(name string) (driver.Conn, error) {
 	conn, err := drv.Driver.Open(name)

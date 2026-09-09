@@ -46,3 +46,10 @@ func (e *endPoint) Shutdown() {
 	}
 	e.stop <- 1
 }
+
+func (e *endPoint) Close() {
+	for _, c := range globalClosers {
+		_ = c.Close()
+	}
+
+}

@@ -8,6 +8,11 @@ receivers:
 
 processors:
   batch:
+  filter/ottl:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["drop"] == true'
   tail_sampling:
     decision_wait: 5s
     num_traces: 50000
@@ -18,6 +23,11 @@ processors:
           name: error-always-sample,
           type: boolean_attribute,
           boolean_attribute: { key: error, value: true },
+        },
+        {
+          name: slowsql-always-sample,
+          type: boolean_attribute,
+          boolean_attribute: { key: slowsql, value: true },
         },
       ]
 

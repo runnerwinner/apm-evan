@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -31,7 +30,7 @@ type InfraOption func(i *infra)
 
 func InfraDbOption(connectUrl string) InfraOption {
 	return func(i *infra) {
-		db, err := sql.Open("mysql", connectUrl)
+		db, err := sql.Open(wrappedMySQLDriver(), connectUrl)
 		if err != nil {
 			panic(err)
 		}

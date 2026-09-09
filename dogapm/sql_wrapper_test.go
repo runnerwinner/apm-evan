@@ -64,3 +64,21 @@ func TestMysqlWrapper(t *testing.T) {
 		t.Fatalf("Rows iteration failed: %v", err)
 	}
 }
+
+
+
+func TestTraceDriver(t *testing.T) {
+	// Register the wrapped driver
+	Infra.Init(
+		InfraEnableApm("127.0.0.1:54317"),
+		InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),
+	)
+	var slept int
+	if err := Infra.Db.QueryRowContext(context.Background(), "SELECT SLEEP(5)").Scan(&slept); err != nil {
+		t.Fatalf("Failed to run slow query: %v", err)
+	}
+	if slept != 0 {
+		t.Fatalf("Unexpected sleep result: %d", slept)
+	}
+	EndPoint.Close()
+}
