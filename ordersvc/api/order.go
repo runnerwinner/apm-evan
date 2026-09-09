@@ -18,6 +18,10 @@ type order struct {
 var Order = &order{}
 
 func (o *order) Add(w http.ResponseWriter, r *http.Request) {
+
+    ctx, span := dogapm.Tracer.Start(r.Context(), "orderStart.Add")
+    defer span.End()
+
 	// 获取参数
     values := r.URL.Query()
 
@@ -49,7 +53,7 @@ func (o *order) Add(w http.ResponseWriter, r *http.Request) {
 		Id: int64(uid),
 	})
 	if err != nil {
-		dogapm.Logger.Error(context.TODO(), "get_userInfo", map[string]interface{}{
+		dogapm.Logger.Error(ctx, "get_userInfo", map[string]interface{}{
 			"uid": uid,
 		}, err)
 		dogapm.HttpStatus.Error(w, err.Error(), nil)
@@ -62,7 +66,7 @@ func (o *order) Add(w http.ResponseWriter, r *http.Request) {
 		Num: int32(num),
 	})
 	if err != nil {
-		dogapm.Logger.Error(context.TODO(), "createOrder", map[string]interface{}{
+		dogapm.Logger.Error(ctx, "createOrder", map[string]interface{}{
 			"uid":    uid,
 			"sku_id": skuID,
 			"num":    num,
@@ -74,7 +78,7 @@ func (o *order) Add(w http.ResponseWriter, r *http.Request) {
 	// 生成订单
 	_, err = dogapm.Infra.Db.ExecContext(context.TODO(), "INSERT INTO t_order (order_id, sku_id, num, price, uid) VALUES (?, ?, ?, ?, ?)", uuid.New().String(), skuID, num, skuMsg.Price, uid)
 	if err != nil {
-		dogapm.Logger.Error(context.TODO(), "create_order_failed", map[string]interface{}{
+		dogapm.Logger.Error(ctx, "create_order_failed", map[string]interface{}{
 			"uid":    uid,
 			"sku_id": skuID,
 		}, err)

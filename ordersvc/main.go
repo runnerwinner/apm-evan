@@ -6,6 +6,7 @@ import (
 	"ordersvc/api"
 	"ordersvc/grpcclient"
 	"protos"
+	"time"
 )
 
 func main() {
@@ -14,7 +15,7 @@ func main() {
 
 	dogapm.Infra.Init(
 		dogapm.InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),
-		// dogapm.InfraRdbOption("localhost:6380"),
+		dogapm.InfraEnableApm("127.0.0.1:54317", 15*time.Second),
 	)
 
 	// TODO: grpcclient初始化
