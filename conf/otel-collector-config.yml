@@ -34,6 +34,17 @@ processors:
           type: boolean_attribute,
           boolean_attribute: { key: longTx, value: true },
         },
+        {
+          name: http-slow,
+          type: numeric_attribute,
+          numeric_attribute:
+            { key: http.duration, min_value: 1, max_value: 1000000000 },
+        },
+        {
+          name: http-status-error,
+          type: string_attribute,
+          string_attribute: { key: http.status_code, values: ["400", "500"] },
+        },
       ]
 
 exporters:
