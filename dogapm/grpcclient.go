@@ -64,16 +64,15 @@ func unaryInterceptor() grpc.UnaryClientInterceptor {
 		ctx,span := tracer.Start(ctx, method, trace.WithSpanKind(trace.SpanKindClient))
 		start := time.Now()
 		defer func() {
-			span.SetAttributes(attribute.Float64("grpc.duration", float64(time.Now().Sub(start).Seconds())))
-			span.End()
-			
+			span.SetAttributes(attribute.Float64("grpc.duration", float64(time.Since(start).Seconds())))
+			span.End()			
 		}()
 		md,ok := metadata.FromOutgoingContext(ctx)
 		if !ok {
-			md = metadata.MD{}		
+			md = metadata.MD{}
 		}
-		
 		otel.GetTextMapPropagator().Inject(ctx, &metadataSupplier{metadata: &md})
+		ctx = metadata.NewOutgoingContext(ctx, md)
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		// Post-processing logic after invoking the RPC
 		if err != nil {
