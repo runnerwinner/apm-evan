@@ -2,17 +2,21 @@ package main
 
 import (
 	"dogapm"
+	"os"
 	"protos"
+	"time"
 	"usrsvc/grpc"
 )
 
 func main() {
+	_ = os.Setenv("OTEL_SERVICE_NAME", "usrsvc")
 
 	//初始化db, http server, grpcclient
 
 	dogapm.Infra.Init(
 		dogapm.InfraDbOption("root:password@tcp(localhost:3307)/usrsvc"),
 		dogapm.InfraRdbOption("localhost:6380"),
+		dogapm.InfraEnableApm("127.0.0.1:54317", 15*time.Second),
 	)
 
 	grpcserver := dogapm.NewGrpcServer(":8002")

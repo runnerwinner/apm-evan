@@ -45,6 +45,12 @@ processors:
           type: string_attribute,
           string_attribute: { key: http.status_code, values: ["400", "500"] },
         },
+        {
+          name: grpc-slow,
+          type: numeric_attribute,
+          numeric_attribute:
+            { key: grpc.duration, min_value: 1, max_value: 1000000000 },
+        },
       ]
 
 exporters:

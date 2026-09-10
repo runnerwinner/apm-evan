@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"ordersvc/api"
 	"ordersvc/grpcclient"
+	"os"
 	"protos"
 	"time"
 )
 
 func main() {
+	_ = os.Setenv("OTEL_SERVICE_NAME", "ordersvc")
 
 	//初始化db, http server, grpcclient
 

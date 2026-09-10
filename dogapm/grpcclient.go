@@ -2,9 +2,15 @@ package dogapm
 
 import (
 	"context"
+	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 // GrpcClient wraps a *grpc.ClientConn. The embedded ClientConn promotes the
@@ -38,9 +44,14 @@ func NewGrpcClient(addr string, opts ...grpc.DialOption) (*GrpcClient, error) {
 	return &GrpcClient{ClientConn: conn}, nil
 }
 
+const (
+	grpcClientTracerName = "dogapm/grpc_client"
+)
+
 // unaryInterceptor is the extension point where APM hooks (trace injection,
 // metric recording, error tagging) should be attached on the client side.
 func unaryInterceptor() grpc.UnaryClientInterceptor {
+	tracer := otel.Tracer(grpcClientTracerName)
 	return func(
 		ctx context.Context,
 		method string,
@@ -50,8 +61,28 @@ func unaryInterceptor() grpc.UnaryClientInterceptor {
 		opts ...grpc.CallOption,
 	) error {
 		// Pre-processing logic before invoking the RPC
+		ctx,span := tracer.Start(ctx, method, trace.WithSpanKind(trace.SpanKindClient))
+		start := time.Now()
+		defer func() {
+			span.SetAttributes(attribute.Float64("grpc.duration", float64(time.Now().Sub(start).Seconds())))
+			span.End()
+			
+		}()
+		md,ok := metadata.FromOutgoingContext(ctx)
+		if !ok {
+			md = metadata.MD{}		
+		}
+		
+		otel.GetTextMapPropagator().Inject(ctx, &metadataSupplier{metadata: &md})
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		// Post-processing logic after invoking the RPC
+		if err != nil {
+			s, _ := status.FromError(err)
+			span.RecordError(err,trace.WithTimestamp(time.Now()), trace.WithStackTrace(true))
+			span.SetAttributes(attribute.Bool("error",true))
+			span.SetAttributes(attribute.String("grpc.status_code", s.Code().String()))
+		}
+		
 		return err
 	}
 }

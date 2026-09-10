@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"dogapm"
 	"net/http"
 	"ordersvc/grpcclient"
@@ -49,7 +48,7 @@ func (o *order) Add(w http.ResponseWriter, r *http.Request) {
 
 
 	//检查用户信息
-	_, err = grpcclient.UserClient.GetUserInfo(context.TODO(), &protos.UserMsg{
+	_, err = grpcclient.UserClient.GetUserInfo(ctx, &protos.UserMsg{
 		Id: int64(uid),
 	})
 	if err != nil {
@@ -61,7 +60,7 @@ func (o *order) Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 对库存进行扣减
-	skuMsg, err := grpcclient.SkuClient.DecreaseStock(context.TODO(), &protos.SkuMsg{
+	skuMsg, err := grpcclient.SkuClient.DecreaseStock(ctx, &protos.SkuMsg{
 		Id:  int64(skuID),
 		Num: int32(num),
 	})
@@ -76,7 +75,7 @@ func (o *order) Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 生成订单
-	_, err = dogapm.Infra.Db.ExecContext(context.TODO(), "INSERT INTO t_order (order_id, sku_id, num, price, uid) VALUES (?, ?, ?, ?, ?)", uuid.New().String(), skuID, num, skuMsg.Price, uid)
+	_, err = dogapm.Infra.Db.ExecContext(ctx, "INSERT INTO t_order (order_id, sku_id, num, price, uid) VALUES (?, ?, ?, ?, ?)", uuid.New().String(), skuID, num, skuMsg.Price, uid)
 	if err != nil {
 		dogapm.Logger.Error(ctx, "create_order_failed", map[string]interface{}{
 			"uid":    uid,
