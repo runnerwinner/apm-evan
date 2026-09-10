@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
@@ -27,17 +28,18 @@ type HttpServer struct {
 
 func NewHttpServer(addr string) *HttpServer {
 	mux := http.NewServeMux()
-	server := &HttpServer{
+	server := &http.Server{Addr:addr, Handler:mux}
+	s := &HttpServer{
 		mux: mux,
-		Server: &http.Server{
-			Addr:    addr,
-			Handler: mux,
-		},
+		Server: server,
 		tracer: otel.Tracer(httpTracerName),
 	}
-	globalClosers = append(globalClosers, server)
-	globalStarters = append(globalStarters, server)
-	return server
+	s.Handle("/metrics", promhttp.HandlerFor(MetricsReg, promhttp.HandlerOpts{
+		Registry: MetricsReg,
+	}))
+	globalClosers = append(globalClosers, s)
+	globalStarters = append(globalStarters, s)
+	return s
 }
 
 
@@ -82,12 +84,14 @@ func (t *traceHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	defer span.End()
 	request = request.Clone(ctx)
 	start := time.Now()
+	serverHandleCounter.WithLabelValues(TypeHttp, request.Method+"."+request.URL.Path).Inc()
 	respWrapper := &respWriterWrapper{ResponseWriter: writer}
 	t.handler.ServeHTTP(respWrapper, request)
 	if respWrapper.status == 0 {
 		respWrapper.status = http.StatusOK
 	}
 	end := time.Now()
+	serverHandleHistogram.WithLabelValues(TypeHttp, request.Method+"."+request.URL.Path, strconv.Itoa(respWrapper.status)).Observe(end.Sub(start).Seconds())
 	span.SetAttributes(
 		attribute.KeyValue{
 			Key:   "http.status_code",

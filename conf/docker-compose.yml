@@ -43,3 +43,22 @@ services:
       - 54317:4317 # OTLP gRPC receiver
       - 54318:4318 # OTLP http receiver
       - 55679:55679 # zpages extension
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - 3000:3000
+    container_name: "grafana0"
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - 9090:9090
+    container_name: "prometheus0"

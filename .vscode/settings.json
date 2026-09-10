@@ -1,0 +1,46 @@
+{
+  "go.useLanguageServer": true,
+  "go.buildOnSave": "off",
+  "go.vetOnSave": "off",
+  "go.lintOnSave": "off",
+
+  "gopls": {
+    "ui.semanticTokens": false,
+    "staticcheck": false,
+    "directoryFilters": [
+      "-**/.git",
+      "-**/node_modules",
+      "-**/bin",
+      "-**/dist",
+      "-ordersvc/ordersvc",
+      "-skusvc/skusvc",
+      "-usrsvc/usrsvc"
+    ]
+  },
+
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/bin/**": true,
+    "**/dist/**": true,
+    "**/ordersvc/ordersvc": true,
+    "**/skusvc/skusvc": true,
+    "**/usrsvc/usrsvc": true
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bin": true,
+    "**/dist": true,
+    "ordersvc/ordersvc": true,
+    "skusvc/skusvc": true,
+    "usrsvc/usrsvc": true
+  },
+
+  "files.exclude": {
+    "ordersvc/ordersvc": true,
+    "skusvc/skusvc": true,
+    "usrsvc/usrsvc": true
+  }
+}
