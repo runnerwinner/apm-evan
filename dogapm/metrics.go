@@ -2,8 +2,10 @@ package dogapm
 
 import (
 	"dogapm/internal"
+	"regexp"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	io_prometheus_client "github.com/prometheus/client_model/go"
 )
 
@@ -93,4 +95,13 @@ var (
 
 func init() {
 	MetricsReg.MustRegister(serverHandleHistogram,serverHandleCounter,clientHandleHistogram,clientHandleCounter,libraryCounter)
+
+	MetricsReg.MustRegister(
+		collectors.NewGoCollector(
+			collectors.WithGoCollectorRuntimeMetrics(
+				collectors.GoRuntimeMetricsRule{Matcher: regexp.MustCompile("/.*")},
+			),			
+		),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
 }

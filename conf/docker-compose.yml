@@ -43,6 +43,64 @@ services:
       - 54317:4317 # OTLP gRPC receiver
       - 54318:4318 # OTLP http receiver
       - 55679:55679 # zpages extension
+  ordersvc:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: ordersvc
+    restart: always
+    environment:
+      - OTEL_SERVICE_NAME=ordersvc
+      - DB_DSN=root:password@tcp(evanapmdb:3306)/ordersvc
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - SKU_GRPC_ADDR=skusvc:8001
+      - USER_GRPC_ADDR=usrsvc:8002
+    depends_on:
+      - evanapmdb
+      - otel-collector
+      - skusvc
+      - usrsvc
+    ports:
+      - 8080:8080
+
+  skusvc:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: skusvc
+    restart: always
+    environment:
+      - OTEL_SERVICE_NAME=skusvc
+      - DB_DSN=root:password@tcp(evanapmdb:3306)/skusvc
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+    depends_on:
+      - evanapmdb
+      - otel-collector
+    ports:
+      - 8091:8091
+      - 8001:8001
+
+  usrsvc:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: usrsvc
+    restart: always
+    environment:
+      - OTEL_SERVICE_NAME=usrsvc
+      - DB_DSN=root:password@tcp(evanapmdb:3306)/usrsvc
+      - REDIS_ADDR=evanapmredis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+    depends_on:
+      - evanapmdb
+      - evanapmredis
+      - otel-collector
+    ports:
+      - 8092:8092
+      - 8002:8002
   grafana:
     image: grafana/grafana:latest
     restart: always
@@ -57,8 +115,6 @@ services:
     restart: always
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     ports:
       - 9090:9090
     container_name: "prometheus0"

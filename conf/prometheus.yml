@@ -4,14 +4,14 @@ scrape_configs:
   - job_name: "ordersvc"
     metrics_path: "/metrics"
     static_configs:
-      - targets: ["host.docker.internal:8080"]
+      - targets: ["ordersvc:8080"]
 
   - job_name: "skusvc"
     metrics_path: "/metrics"
     static_configs:
-      - targets: ["host.docker.internal:8091"]
+      - targets: ["skusvc:8091"]
 
   - job_name: "usrsvc"
     metrics_path: "/metrics"
     static_configs:
-      - targets: ["host.docker.internal:8092"]
+      - targets: ["usrsvc:8092"]

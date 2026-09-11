@@ -8,15 +8,27 @@ import (
 	"usrsvc/grpc"
 )
 
+func envOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
 func main() {
-	_ = os.Setenv("OTEL_SERVICE_NAME", "usrsvc")
+	if os.Getenv("OTEL_SERVICE_NAME") == "" {
+		_ = os.Setenv("OTEL_SERVICE_NAME", "usrsvc")
+	}
 
 	//初始化db, http server, grpcclient
+	dbDSN := envOrDefault("DB_DSN", "root:password@tcp(localhost:3307)/usrsvc")
+	redisAddr := envOrDefault("REDIS_ADDR", "localhost:6380")
+	otelAddr := envOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "127.0.0.1:54317")
 
 	dogapm.Infra.Init(
-		dogapm.InfraDbOption("root:password@tcp(localhost:3307)/usrsvc"),
-		dogapm.InfraRdbOption("localhost:6380"),
-		dogapm.InfraEnableApm("127.0.0.1:54317", 15*time.Second),
+		dogapm.InfraDbOption(dbDSN),
+		dogapm.InfraRdbOption(redisAddr),
+		dogapm.InfraEnableApm(otelAddr, 15*time.Second),
 	)
 
 	dogapm.NewHttpServer(":8092")

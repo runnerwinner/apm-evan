@@ -10,24 +10,37 @@ import (
 	"time"
 )
 
+func envOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
 func main() {
-	_ = os.Setenv("OTEL_SERVICE_NAME", "ordersvc")
+	if os.Getenv("OTEL_SERVICE_NAME") == "" {
+		_ = os.Setenv("OTEL_SERVICE_NAME", "ordersvc")
+	}
 
 	//初始化db, http server, grpcclient
+	dbDSN := envOrDefault("DB_DSN", "root:password@tcp(localhost:3307)/ordersvc")
+	otelAddr := envOrDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "127.0.0.1:54317")
+	skuAddr := envOrDefault("SKU_GRPC_ADDR", "localhost:8001")
+	userAddr := envOrDefault("USER_GRPC_ADDR", "localhost:8002")
 
 	dogapm.Infra.Init(
-		dogapm.InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),
-		dogapm.InfraEnableApm("127.0.0.1:54317", 15*time.Second),
+		dogapm.InfraDbOption(dbDSN),
+		dogapm.InfraEnableApm(otelAddr, 15*time.Second),
 	)
 
 	// TODO: grpcclient初始化
-	skuconn, err := dogapm.NewGrpcClient(":8001","skusvc")
+	skuconn, err := dogapm.NewGrpcClient(skuAddr,"skusvc")
 	if err != nil {
 		panic(err)
 	}
 	grpcclient.SkuClient = protos.NewSkuServiceClient(skuconn)
 
-	userconn, err := dogapm.NewGrpcClient(":8002","usersvc")
+	userconn, err := dogapm.NewGrpcClient(userAddr,"usrsvc")
 	if err != nil {
 		panic(err)
 	}
