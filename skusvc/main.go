@@ -18,6 +18,8 @@ func main() {
 		dogapm.InfraEnableApm("127.0.0.1:54317", 15*time.Second),
 	)
 
+	dogapm.NewHttpServer(":8091")
+
 	grpcserver := dogapm.NewGrpcServer(":8001")
 	protos.RegisterSkuServiceServer(grpcserver, &grpc.SkuServer{})
 

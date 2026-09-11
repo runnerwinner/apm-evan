@@ -19,6 +19,8 @@ func main() {
 		dogapm.InfraEnableApm("127.0.0.1:54317", 15*time.Second),
 	)
 
+	dogapm.NewHttpServer(":8092")
+
 	grpcserver := dogapm.NewGrpcServer(":8002")
 	protos.RegisterUserServiceServer(grpcserver, &grpc.UserServer{})
 

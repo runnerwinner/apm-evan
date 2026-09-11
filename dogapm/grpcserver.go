@@ -3,12 +3,14 @@ package dogapm
 import (
 	"context"
 	"net"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -68,14 +70,17 @@ func unaryServerInterceptor() grpc.UnaryServerInterceptor {
 		ctx = otel.GetTextMapPropagator().Extract(ctx, &metadataSupplier{metadata: &md})
 		ctx, span := tracer.Start(ctx, info.FullMethod, trace.WithSpanKind(trace.SpanKindServer))
 		start := time.Now()
-		defer func() {
+		statusCode := codes.OK
+		defer func() {			
 			span.SetAttributes(attribute.Float64("grpc.duration", float64(time.Since(start).Seconds())))
 			span.End()
+			serverHandleHistogram.WithLabelValues(TypeGrpc, info.FullMethod, strconv.Itoa(int(statusCode))).Observe(time.Since(start).Seconds())
 		}()
-		
+		serverHandleCounter.WithLabelValues(TypeGrpc, info.FullMethod).Inc()
 		resp, err := handler(ctx, req)
 		if err != nil {
 			s, _ := status.FromError(err)
+			statusCode = s.Code()
 			span.RecordError(err,trace.WithTimestamp(time.Now()), trace.WithStackTrace(true))
 			span.SetAttributes(attribute.Bool("error",true))
 			span.SetAttributes(attribute.String("grpc.status_code", s.Code().String()))

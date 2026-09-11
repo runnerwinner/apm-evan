@@ -9,6 +9,7 @@ import (
 
 const (
 	TypeHttp = "http"
+	TypeGrpc = "grpc"
 )
 
 type customMetricRegistry struct {
@@ -64,8 +65,20 @@ var (
 			Name: "server_handle_total",
 		}, []string{"type", "method"},
 	)
+
+	clientHandleHistogram = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "client_handle_seconds",
+		}, []string{"type", "method", "server"},
+	)
+
+	clientHandleCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "client_handle_total", 
+		}, []string{"type", "method", "server"},
+	)
 )
 
 func init() {
-	MetricsReg.MustRegister(serverHandleHistogram,serverHandleCounter)
+	MetricsReg.MustRegister(serverHandleHistogram,serverHandleCounter,clientHandleHistogram,clientHandleCounter)
 }

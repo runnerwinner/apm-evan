@@ -21,12 +21,13 @@ func main() {
 	)
 
 	// TODO: grpcclient初始化
-	skuconn, err := dogapm.NewGrpcClient("localhost:8001")
+	skuconn, err := dogapm.NewGrpcClient(":8001","skusvc")
 	if err != nil {
 		panic(err)
 	}
 	grpcclient.SkuClient = protos.NewSkuServiceClient(skuconn)
-	userconn, err := dogapm.NewGrpcClient("localhost:8002")
+
+	userconn, err := dogapm.NewGrpcClient(":8002","usersvc")
 	if err != nil {
 		panic(err)
 	}

@@ -79,7 +79,7 @@ func TestNewGrpcServer(t *testing.T) {
 
 	var lastErr error
 	for i := 0; i < 20; i++ {
-		client, err := NewGrpcClient("localhost:50051")
+		client, err := NewGrpcClient("localhost:50051","hellosvc")
 		if err != nil {
 			lastErr = err
 			time.Sleep(50 * time.Millisecond)

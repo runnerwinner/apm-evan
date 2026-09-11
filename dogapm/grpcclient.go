@@ -31,9 +31,9 @@ type GrpcClient struct {
 // opts are appended after the defaults so callers can override the insecure
 // transport credentials used by default for development, e.g. pass
 // grpc.WithTransportCredentials(tlsCredentials) in production.
-func NewGrpcClient(addr string, opts ...grpc.DialOption) (*GrpcClient, error) {
+func NewGrpcClient(addr,server string, opts ...grpc.DialOption) (*GrpcClient, error) {
 	dialOpts := append([]grpc.DialOption{
-		grpc.WithUnaryInterceptor(unaryInterceptor()),
+		grpc.WithUnaryInterceptor(unaryInterceptor(server)),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}, opts...)
 
@@ -50,7 +50,7 @@ const (
 
 // unaryInterceptor is the extension point where APM hooks (trace injection,
 // metric recording, error tagging) should be attached on the client side.
-func unaryInterceptor() grpc.UnaryClientInterceptor {
+func unaryInterceptor(server string) grpc.UnaryClientInterceptor {
 	tracer := otel.Tracer(grpcClientTracerName)
 	return func(
 		ctx context.Context,
@@ -64,6 +64,7 @@ func unaryInterceptor() grpc.UnaryClientInterceptor {
 		ctx,span := tracer.Start(ctx, method, trace.WithSpanKind(trace.SpanKindClient))
 		start := time.Now()
 		defer func() {
+			clientHandleHistogram.WithLabelValues(TypeGrpc, method, server).Observe(time.Since(start).Seconds())
 			span.SetAttributes(attribute.Float64("grpc.duration", float64(time.Since(start).Seconds())))
 			span.End()			
 		}()
@@ -73,6 +74,7 @@ func unaryInterceptor() grpc.UnaryClientInterceptor {
 		}
 		otel.GetTextMapPropagator().Inject(ctx, &metadataSupplier{metadata: &md})
 		ctx = metadata.NewOutgoingContext(ctx, md)
+		clientHandleCounter.WithLabelValues(TypeGrpc, method, server).Inc()
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		// Post-processing logic after invoking the RPC
 		if err != nil {
