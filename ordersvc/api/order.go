@@ -4,6 +4,7 @@ import (
 	"dogapm"
 	"net/http"
 	"ordersvc/grpcclient"
+	"ordersvc/metric"
 	"protos"
 	"strconv"
 
@@ -85,6 +86,7 @@ func (o *order) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metric.OrderSuccessCounter.WithLabelValues(strconv.Itoa(skuID)).Inc()
 	// 返回结果
 	dogapm.HttpStatus.OK(w)
 

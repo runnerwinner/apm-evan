@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"ordersvc/api"
 	"ordersvc/grpcclient"
+	"ordersvc/metric"
 	"os"
 	"protos"
 	"time"
@@ -31,6 +32,7 @@ func main() {
 	dogapm.Infra.Init(
 		dogapm.InfraDbOption(dbDSN),
 		dogapm.InfraEnableApm(otelAddr, 15*time.Second),
+		dogapm.MetricReg(metric.All()...),
 	)
 
 	// TODO: grpcclient初始化

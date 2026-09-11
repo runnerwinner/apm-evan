@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -27,6 +28,12 @@ type infra struct {
 var Infra = &infra{}
 
 type InfraOption func(i *infra)
+
+func MetricReg(collectors ...prometheus.Collector) InfraOption{
+	return func(i *infra) {
+		MetricsReg.MustRegister(collectors...)
+	}
+}
 
 func InfraDbOption(connectUrl string) InfraOption {
 	return func(i *infra) {
