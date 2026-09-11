@@ -30,7 +30,7 @@ type InfraOption func(i *infra)
 
 func InfraDbOption(connectUrl string) InfraOption {
 	return func(i *infra) {
-		db, err := sql.Open(wrappedMySQLDriver(), connectUrl)
+		db, err := sql.Open(wrappedMySQLDriver(connectUrl), connectUrl)
 		if err != nil {
 			panic(err)
 		}

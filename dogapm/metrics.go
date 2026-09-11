@@ -10,6 +10,8 @@ import (
 const (
 	TypeHttp = "http"
 	TypeGrpc = "grpc"
+	TypeMysql = "mysql"
+	TypeRedis = "redis"
 )
 
 type customMetricRegistry struct {
@@ -77,8 +79,18 @@ var (
 			Name: "client_handle_total", 
 		}, []string{"type", "method", "server"},
 	)
+
+	// 对 mysql 或 redis 等第三方库的调用次数进行统计
+	// method : mysql - query delete, redis - get set  and so on
+	// name ： 表名 
+	// server : 标识第三方组件的一些信息， 比如 mysql - host:port, redis - host:port
+	libraryCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "lib_handle_total",
+		}, []string{"type", "method", "name", "server"},
+	)
 )
 
 func init() {
-	MetricsReg.MustRegister(serverHandleHistogram,serverHandleCounter,clientHandleHistogram,clientHandleCounter)
+	MetricsReg.MustRegister(serverHandleHistogram,serverHandleCounter,clientHandleHistogram,clientHandleCounter,libraryCounter)
 }

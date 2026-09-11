@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/xwb1989/sqlparser"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -23,9 +24,9 @@ const (
 
 var registerWrappedMySQLDriverOnce sync.Once
 
-func wrappedMySQLDriver() string {
+func wrappedMySQLDriver(connectUrl string) string {
 	registerWrappedMySQLDriverOnce.Do(func() {
-		sql.Register(wrappedMySQLDriverName, wrap(mysql.MySQLDriver{}))
+		sql.Register(wrappedMySQLDriverName, wrap(mysql.MySQLDriver{}, connectUrl))
 	})
 	return wrappedMySQLDriverName
 }
@@ -37,9 +38,10 @@ func truncate(query string) string {
 	return query
 }
 
-func wrap(d driver.Driver) driver.Driver {
+func wrap(d driver.Driver, connectUrl string) driver.Driver {
 
 	tracer := otel.Tracer(mysqlTracerName)
+	dsnConf , _ := mysql.ParseDSN(connectUrl)
 	return &Driver{
 		Driver: d,
 		hooks: Hooks{
@@ -55,6 +57,11 @@ func wrap(d driver.Driver) driver.Driver {
 				return ctx, nil
 			},
 			After: func(ctx context.Context, query string, args ...any) (context.Context, error) {
+				table , op, err, multiTable := SqlParser.ParseTable(query)
+				if !multiTable && err == nil {
+					libraryCounter.WithLabelValues(TypeMysql, sqlparser.StmtType(op), table, dsnConf.DBName+"."+dsnConf.Addr).Inc()
+				}
+				
 				beginTime := time.Now()
 				if v := ctx.Value(ctxKeyBeginTime); v != nil {
 					if bt, ok := v.(time.Time); ok {
