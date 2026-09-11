@@ -67,6 +67,8 @@ func unaryServerInterceptor() grpc.UnaryServerInterceptor {
 		if !ok {
 			md = metadata.MD{}
 		}
+		clientApp := md.Get(peerApp)[0]
+		clientHost := md.Get(peerHost)[0]
 		ctx = otel.GetTextMapPropagator().Extract(ctx, &metadataSupplier{metadata: &md})
 		ctx, span := tracer.Start(ctx, info.FullMethod, trace.WithSpanKind(trace.SpanKindServer))
 		start := time.Now()
@@ -74,9 +76,9 @@ func unaryServerInterceptor() grpc.UnaryServerInterceptor {
 		defer func() {			
 			span.SetAttributes(attribute.Float64("grpc.duration", float64(time.Since(start).Seconds())))
 			span.End()
-			serverHandleHistogram.WithLabelValues(TypeGrpc, info.FullMethod, strconv.Itoa(int(statusCode))).Observe(time.Since(start).Seconds())
+			serverHandleHistogram.WithLabelValues(TypeGrpc, info.FullMethod, strconv.Itoa(int(statusCode)), clientApp, clientHost).Observe(time.Since(start).Seconds())
 		}()
-		serverHandleCounter.WithLabelValues(TypeGrpc, info.FullMethod).Inc()
+		serverHandleCounter.WithLabelValues(TypeGrpc, info.FullMethod, clientApp, clientHost).Inc()
 		resp, err := handler(ctx, req)
 		if err != nil {
 			s, _ := status.FromError(err)

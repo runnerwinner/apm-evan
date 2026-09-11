@@ -84,14 +84,14 @@ func (t *traceHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	defer span.End()
 	request = request.Clone(ctx)
 	start := time.Now()
-	serverHandleCounter.WithLabelValues(TypeHttp, request.Method+"."+request.URL.Path).Inc()
+	serverHandleCounter.WithLabelValues(TypeHttp, request.Method+"."+request.URL.Path,"","").Inc()
 	respWrapper := &respWriterWrapper{ResponseWriter: writer}
 	t.handler.ServeHTTP(respWrapper, request)
 	if respWrapper.status == 0 {
 		respWrapper.status = http.StatusOK
 	}
 	end := time.Now()
-	serverHandleHistogram.WithLabelValues(TypeHttp, request.Method+"."+request.URL.Path, strconv.Itoa(respWrapper.status)).Observe(end.Sub(start).Seconds())
+	serverHandleHistogram.WithLabelValues(TypeHttp, request.Method+"."+request.URL.Path, strconv.Itoa(respWrapper.status),"","").Observe(end.Sub(start).Seconds())
 	span.SetAttributes(
 		attribute.KeyValue{
 			Key:   "http.status_code",

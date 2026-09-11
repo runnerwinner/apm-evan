@@ -2,6 +2,7 @@ package dogapm
 
 import (
 	"context"
+	"dogapm/internal"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -48,6 +49,11 @@ const (
 	grpcClientTracerName = "dogapm/grpc_client"
 )
 
+const (
+	peerApp = "peerApp"
+	peerHost = "peerHost"
+)
+
 // unaryInterceptor is the extension point where APM hooks (trace injection,
 // metric recording, error tagging) should be attached on the client side.
 func unaryInterceptor(server string) grpc.UnaryClientInterceptor {
@@ -72,6 +78,8 @@ func unaryInterceptor(server string) grpc.UnaryClientInterceptor {
 		if !ok {
 			md = metadata.MD{}
 		}
+		md.Set(peerApp, internal.BuildInfo.AppName())
+		md.Set(peerHost, internal.BuildInfo.Hostname())
 		otel.GetTextMapPropagator().Inject(ctx, &metadataSupplier{metadata: &md})
 		ctx = metadata.NewOutgoingContext(ctx, md)
 		clientHandleCounter.WithLabelValues(TypeGrpc, method, server).Inc()
