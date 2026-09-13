@@ -31,7 +31,7 @@ func main() {
 
 	dogapm.Infra.Init(
 		dogapm.InfraDbOption(dbDSN),
-		dogapm.InfraEnableApm(otelAddr, 15*time.Second),
+		dogapm.InfraEnableApm(otelAddr, "/logs", 2, 15*time.Second),
 		dogapm.MetricReg(metric.All()...),
 	)
 

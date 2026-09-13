@@ -6,6 +6,16 @@ services:
     container_name: evanapmdb
     environment:
       - MYSQL_ROOT_PASSWORD=password
+    command:
+      - bash
+      - -c
+      - |
+        docker-entrypoint.sh mysqld &
+        until mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent; do
+          sleep 2
+        done
+        mysql -uroot -p"$${MYSQL_ROOT_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ordersvc CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS skusvc CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS usrsvc CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+        wait
     ports:
       - "3307:3306"
 
@@ -56,13 +66,20 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
       - SKU_GRPC_ADDR=skusvc:8001
       - USER_GRPC_ADDR=usrsvc:8002
+      - ELASTICSEARCH_HOSTS=elasticsearch:9200
+      - ENABLE_FILEBEAT=true
     depends_on:
       - evanapmdb
       - otel-collector
       - skusvc
       - usrsvc
+      - elasticsearch
     ports:
       - 8080:8080
+    volumes:
+      - "./logs:/logs"
+      - "./logcollect/ordersvc.yml:/logcollect/ordersvc.yml"
+      - ordersvc-filebeat-data:/var/lib/filebeat
 
   skusvc:
     build:
@@ -75,12 +92,19 @@ services:
       - OTEL_SERVICE_NAME=skusvc
       - DB_DSN=root:password@tcp(evanapmdb:3306)/skusvc
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - ELASTICSEARCH_HOSTS=elasticsearch:9200
+      - ENABLE_FILEBEAT=true
     depends_on:
       - evanapmdb
       - otel-collector
+      - elasticsearch
     ports:
       - 8091:8091
       - 8001:8001
+    volumes:
+      - "./logs:/logs"
+      - "./logcollect/skusvc.yml:/logcollect/skusvc.yml"
+      - skusvc-filebeat-data:/var/lib/filebeat
 
   usrsvc:
     build:
@@ -94,13 +118,21 @@ services:
       - DB_DSN=root:password@tcp(evanapmdb:3306)/usrsvc
       - REDIS_ADDR=evanapmredis:6379
       - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - ELASTICSEARCH_HOSTS=elasticsearch:9200
+      - ENABLE_FILEBEAT=true
     depends_on:
       - evanapmdb
       - evanapmredis
       - otel-collector
+      - elasticsearch
     ports:
       - 8092:8092
       - 8002:8002
+    volumes:
+      - "./logs:/logs"
+      - "./logcollect/usrsvc.yml:/logcollect/usrsvc.yml"
+      - usrsvc-filebeat-data:/var/lib/filebeat
+
   grafana:
     image: grafana/grafana:latest
     restart: always
@@ -118,3 +150,29 @@ services:
     ports:
       - 9090:9090
     container_name: "prometheus0"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.14.2
+    container_name: elasticsearch2
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.14.2
+    container_name: kibana2
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+
+volumes:
+  ordersvc-filebeat-data:
+  skusvc-filebeat-data:
+  usrsvc-filebeat-data:

@@ -2,6 +2,7 @@ package dogapm
 
 import (
 	"context"
+	"dogapm/internal"
 	"maps"
 	"time"
 
@@ -16,6 +17,19 @@ const traceId = "traceId"
 func init() {
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 	logrus.SetLevel(logrus.InfoLevel)
+	logrus.AddHook(&logHook{})
+}
+
+type logHook struct{}
+
+func (h *logHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+func (h *logHook) Fire(entry *logrus.Entry) error {
+	entry.Data["host"] = internal.BuildInfo.Hostname()
+	entry.Data["app"] = internal.BuildInfo.AppName()
+	return nil
 }
 
 var Logger = &log{}

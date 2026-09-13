@@ -28,7 +28,7 @@ func main() {
 	dogapm.Infra.Init(
 		dogapm.InfraDbOption(dbDSN),
 		dogapm.InfraRdbOption(redisAddr),
-		dogapm.InfraEnableApm(otelAddr, 15*time.Second),
+		dogapm.InfraEnableApm(otelAddr, "/logs", 2,15*time.Second),
 	)
 
 	dogapm.NewHttpServer(":8092")

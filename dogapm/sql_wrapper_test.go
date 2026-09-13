@@ -69,7 +69,7 @@ func TestMysqlWrapper(t *testing.T) {
 func TestTraceDriver(t *testing.T) {
 	// Register the wrapped driver
 	Infra.Init(
-		InfraEnableApm("127.0.0.1:54317"),
+		InfraEnableApm("127.0.0.1:54317", "./logs", 7),
 		InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),		
 	)
 	var slept int
@@ -84,7 +84,7 @@ func TestTraceDriver(t *testing.T) {
 
 func TestLongTx(t *testing.T) {
 	Infra.Init(
-		InfraEnableApm("127.0.0.1:54317"),
+		InfraEnableApm("127.0.0.1:54317", "./logs", 7, 0),
 		InfraDbOption("root:password@tcp(localhost:3307)/ordersvc"),
 	)
 

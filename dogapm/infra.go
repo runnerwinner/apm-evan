@@ -5,11 +5,14 @@ import (
 	"database/sql"
 	"dogapm/internal"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
@@ -67,7 +70,7 @@ func InfraRdbOption(connectUrl string) InfraOption {
 	}
 }
 
-func InfraEnableApm(otelEndpoint string, connectTimeout ...time.Duration) InfraOption {
+func InfraEnableApm(otelEndpoint string, logPathPrefix string, maxLogCnt uint,connectTimeout ...time.Duration) InfraOption {
 	return func(i *infra) {
 		ctx := context.Background()
 		res, err := resource.New(ctx, resource.WithAttributes(
@@ -115,6 +118,18 @@ func InfraEnableApm(otelEndpoint string, connectTimeout ...time.Duration) InfraO
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 		globalClosers = append(globalClosers, &traceProviderComponent{provider: tracerProvider})
 
+		if err := os.MkdirAll(logPathPrefix, 0755); err != nil {
+			panic(fmt.Errorf("create log dir failed: %w", err))
+		}
+		logWriter, err := rotatelogs.New(
+			fmt.Sprintf("%s.%%Y%%m%%d%%H%%M.log", logPathPrefix+"/"+internal.BuildInfo.AppName()),
+			rotatelogs.WithMaxAge(time.Duration(maxLogCnt)*24*time.Hour),
+			rotatelogs.WithRotationTime(24*time.Hour),
+		)
+		if err != nil {
+			panic(fmt.Errorf("create log file failed: %w", err))
+		}
+		logrus.SetOutput(logWriter)
 	}
 }
 
