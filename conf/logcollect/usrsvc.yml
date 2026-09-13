@@ -1,5 +1,3 @@
-max_types: 3145728
-max_procs: 1
 - type: filestream
   id: usrsvc-input
   enabled: true

@@ -5,5 +5,7 @@ filebeat.config.inputs:
   enabled: true
   path: /logcollect/*.yml
 
-output.console:
-  pretty: true
+# output.console:
+#   pretty: true
+output.logstash:
+  hosts: ["logstash:5044"]
