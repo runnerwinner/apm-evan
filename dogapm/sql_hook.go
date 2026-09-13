@@ -61,6 +61,14 @@ func wrap(d driver.Driver, connectUrl string) driver.Driver {
 				if !multiTable && err == nil {
 					libraryCounter.WithLabelValues(TypeMysql, sqlparser.StmtType(op), table, dsnConf.DBName+"."+dsnConf.Addr).Inc()
 				}
+
+				switch op {
+				case sqlparser.StmtInsert, sqlparser.StmtUpdate, sqlparser.StmtDelete:
+					Logger.Info(ctx, "auditsql", map[string]any{
+						"query": query,
+						"args": args,
+					})
+				}
 				
 				beginTime := time.Now()
 				if v := ctx.Value(ctxKeyBeginTime); v != nil {
