@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"dogalarm/dao"
+	"dogalarm/metric"
 	"dogalarm/model"
 	"dogalarm/notice"
 	"dogapm"
@@ -97,6 +98,8 @@ func (a *alarm) LogWebHook(w http.ResponseWriter, request *http.Request) {
 	limited := dogapm.RedisLimiter.IsLimit(dogapm.Infra.Rdb, fmt.Sprintf("%s:ding:%s:%d", "dogalarm",encryptStr,msglen),10,60)	
 	if !limited {
 		notice.Alarmer.Send(notice.DingDing,msg,dingdingWebhook,"")
+	}else {
+		metric.DropAlarmCounter.WithLabelValues(app, host, "dingding").Inc()
 	}
 }
 

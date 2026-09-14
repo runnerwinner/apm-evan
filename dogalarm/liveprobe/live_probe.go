@@ -2,6 +2,7 @@ package liveprobe
 
 import (
 	"dogalarm/dao"
+	"dogalarm/metric"
 	"dogalarm/notice"
 	"fmt"
 	"net/http"
@@ -52,6 +53,7 @@ func (p *probe) checkLive(checkUrl, appName, host, alarmUrl, phone string, retry
         if resp != nil && resp.Body != nil {
             if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
                 resp.Body.Close()
+				metric.LiveProbeGuage.WithLabelValues(appName, host).Set(float64(metric.Living))
                 return true
             }
             resp.Body.Close()
@@ -60,5 +62,6 @@ func (p *probe) checkLive(checkUrl, appName, host, alarmUrl, phone string, retry
         time.Sleep(time.Second)
     }
 	notice.Alarmer.Send(notice.Phone, fmt.Sprintf("app=%s host=%s 探测失败，服务宕机", appName, host), alarmUrl, phone)
+	metric.LiveProbeGuage.WithLabelValues(appName, host).Set(float64(metric.ShutDown))
     return false
 }
