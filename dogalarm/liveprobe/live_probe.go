@@ -5,11 +5,16 @@ import (
 	"dogalarm/metric"
 	"dogalarm/notice"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cast"
+	"golang.org/x/crypto/ssh"
 )
 type probe struct {	
 	client http.Client
@@ -61,7 +66,69 @@ func (p *probe) checkLive(checkUrl, appName, host, alarmUrl, phone string, retry
 
         time.Sleep(time.Second)
     }
-	notice.Alarmer.Send(notice.Phone, fmt.Sprintf("app=%s host=%s 探测失败，服务宕机", appName, host), alarmUrl, phone)
-	metric.LiveProbeGuage.WithLabelValues(appName, host).Set(float64(metric.ShutDown))
-    return false
+
+	remoteStartApp(appName, host)
+	time.Sleep(2*time.Second)
+	resp, err := p.client.Get(checkUrl)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		notice.Alarmer.Send(notice.Phone, fmt.Sprintf("app=%s host=%s 探测失败，服务宕机", appName, host), alarmUrl, phone)
+		metric.LiveProbeGuage.WithLabelValues(appName, host).Set(float64(metric.ShutDown))
+		return false
+	}else{
+		return true
+	}
+	
+}
+
+func remoteStartApp(app string, ip string) {
+
+	sshUser := "root"
+	sshKeyPath := "/Users/evan/.ssh/id_rsa"
+	sshProt :=10022 // 映射远程docker的ssh 22端口
+	config := &ssh.ClientConfig{
+		User: sshUser,
+		Timeout: time.Second,
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			return nil
+		},
+	}
+	config.Auth = []ssh.AuthMethod{publicKeyAuthFunc(sshKeyPath)}
+	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", ip, sshProt), config)
+	if err != nil {
+		return
+	}
+	defer sshClient.Close()
+
+	session,err := sshClient.NewSession()
+	if err != nil {
+		return
+	}
+	defer session.Close()
+
+	// 执行远程命令
+	// cmd := fmt.Sprintf("cd /root/%s && ./run.sh %s 1>>nohup.out 2>&1 &", app, app)
+	// err = session.Run(cmd)
+	combo, err := session.CombinedOutput(fmt.Sprintf("cd /root/%s && ./run.sh %s 1>>nohup.out 2>&1 &", app, app))
+	if err != nil {
+		log.Println("远程执行cmd 失败", err, string(combo))
+		return
+	}
+	log.Println("命令输出", string(combo))
+
+}
+
+func publicKeyAuthFunc(keypath string) ssh.AuthMethod {
+	keypath, err := homedir.Expand(keypath)
+	if err != nil { 
+		panic(err)
+	}
+	key, err := ioutil.ReadFile(keypath)
+	if err != nil {
+		panic(err)
+	}
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		panic(err)
+	}
+	return ssh.PublicKeys(signer)
 }
