@@ -138,7 +138,7 @@ services:
     restart: always
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=123456
     ports:
       - 3000:3000
     container_name: "grafana0"

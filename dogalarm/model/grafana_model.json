@@ -1,0 +1,46 @@
+{
+  "receiver": "dogalarm",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "Http QPS",
+        "app": "ordersvc",
+        "dogapm": "1",
+        "grafana_folder": "dogalarm"
+      },
+      "annotations": {},
+      "startsAt": "2024-06-19T12:00:00Z",
+      "endsAt": "2024-06-19T12:05:00Z",
+      "generatorURL": "http://grafana0:3000/alerting/1",
+      "fingerprint": "abc123",
+      "silenceURL": "http://grafana0:3000/alerting/silence/new?alertmanager=grafana&matchers=alertname%3DHttp+QPS&matchers=app%3Dordersvc&matchers=dogapm%3D1&matchers=grafana_folder%3Ddogalarm",
+      "dashboardURL": "http://grafana0:3000/d/abc123/ordersvc-dashboard?orgId=1&from=now-5m&to=now",
+      "panelURL": "http://grafana0:3000/d/abc123/ordersvc-dashboard?orgId=1&from=now-5m&to=now&viewPanel=123456",
+      "values": {
+        "B": 0.06667228117455504,
+        "C": 1
+      },
+      "valueString": "0.06667228117455504"
+    }
+  ],
+  "groupLabels": {
+    "alertname": "Http QPS",
+    "grafana_folder": "dogalarm"
+  },
+  "commonLabels": {
+    "alertname": "Http QPS",
+    "dogapm": "1",
+    "grafana_folder": "dogalarm"
+  },
+  "commonAnnotations": {},
+  "externalURL": "http://grafana0:3000",
+  "version": "4",
+  "groupKey": "{}:{alertname=\"Http QPS\", app=\"ordersvc\", dogapm=\"1\", grafana_folder=\"dogalarm\"}",
+  "truncatedAlerts": 0,
+  "orgId": 1,
+  "title": "[FIRING:1] (Http QPS)",
+  "state": "alerting",
+  "message": "Alert 'Http QPS' is firing (1 instances)\n"
+}

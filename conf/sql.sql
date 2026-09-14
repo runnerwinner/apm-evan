@@ -27,3 +27,16 @@ create table t_user
     ctime timestamp default CURRENT_TIMESTAMP not null,
     utime timestamp default CURRENT_TIMESTAMP not null
 );
+
+-- 监控告警配置表
+create table t_deploy_info
+(
+    id              bigint auto_increment primary key,
+    app             varchar(10) default '' not null,
+    hosts           varchar(55) null comment '部署的主机ip,多个以逗号隔开',
+    port            int null comment '服务端口',
+    live_probe      varchar(255) null comment '监控检查接口路径',
+    phone_webhook   varchar(255) null,
+    dingding_webhook varchar(255) null comment '钉钉webhook',
+    phone varchar(255) null comment '手机号'
+);
