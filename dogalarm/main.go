@@ -4,7 +4,6 @@ import (
 	"dogalarm/api"
 	"dogalarm/metric"
 	"dogapm"
-	"net/http"
 	"os"
 	"time"
 )
@@ -28,11 +27,9 @@ func main() {
 	)
 
 	httpServer := dogapm.NewHttpServer(":8084")
-	httpServer.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("OK"))
-	})
 	httpServer.HandleFunc("/metric_webhook", api.Alarm.MetricWebHook)
 	httpServer.HandleFunc("/log_webhook", api.Alarm.LogWebHook)
+	// 启用liveprobe
+	// liveprobe.Probe.Enable()
 	dogapm.EndPoint.Start()
 }

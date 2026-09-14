@@ -34,6 +34,9 @@ func NewHttpServer(addr string) *HttpServer {
 		Server: server,
 		tracer: otel.Tracer(httpTracerName),
 	}
+	s.HandleFunc("/hello", func (w http.ResponseWriter, r *http.Request)  {
+		w.Write([]byte("OK"))
+	})
 	s.Handle("/metrics", promhttp.HandlerFor(MetricsReg, promhttp.HandlerOpts{
 		Registry: MetricsReg,
 	}))
