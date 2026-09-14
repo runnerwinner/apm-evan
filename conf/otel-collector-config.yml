@@ -63,8 +63,12 @@ extensions:
   health_check:
   pprof:
   zpages:
-    endpoint: 0.0.0.0:55679
+    endpoint: ":55679"
 service:
+  telemetry:
+    metrics:
+      level: detailed
+      address: ":8888"
   extensions: [health_check, pprof, zpages]
   pipelines:
     traces:
